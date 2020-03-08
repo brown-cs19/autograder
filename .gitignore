@@ -1,0 +1,6 @@
+**/target
+__pycache__
+results.csv
+results.json
+problems
+stdout.txt

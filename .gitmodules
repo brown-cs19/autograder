@@ -1,0 +1,3 @@
+[submodule "powder-monkey/pyret-lang"]
+	path = powder-monkey/pyret-lang
+	url = git@github.com:brownplt/pyret-lang.git
