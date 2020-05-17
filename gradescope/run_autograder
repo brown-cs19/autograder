@@ -12,9 +12,6 @@ PYRET_PATH = "/autograder/source/cs19-autograding/pyret-lang"
 NODE_MODULES_PATH = f"{PYRET_PATH}/node_modules"
 RUNNER_PATH = "/autograder/source/cs19-autograding/runner.js"
 JQ = "jq"
-STUDENT_COMMON_PATH = "/autograder/submission/common.arr"
-STUDENT_CODE_PATH = "/autograder/submission/code.arr"
-STUDENT_TEST_PATH = "/autograder/submission/tests.arr"
 
 
 def fix_code_imports(path):
@@ -147,33 +144,50 @@ def run(impl_path, test_path):
 
 
 if __name__ == '__main__':
+    os.chdir("/autograder")
+
+    student_common_path = ""
+    student_code_path = ""
+    student_test_path = ""
+    for root, _, files in os.walk("submission"):
+        for f in files:
+            if "common" in f:
+                student_common_path = os.path.join(root, f)
+            if "code" in f:
+                student_code_path = os.path.join(root, f)
+            if "tests" in f:
+                student_test_path = os.path.join(root, f)
+    assert student_common_path and student_code_path and student_test_path
+
+    os.chdir("source")
+
     jobs = []
 
     # Fix import statements in student's common file
-    fix_common_imports(STUDENT_COMMON_PATH)
+    fix_common_imports(student_common_path)
 
     # Fix import statements in student's code file
-    fix_code_imports(STUDENT_CODE_PATH)
+    fix_code_imports(student_code_path)
 
     # Run tests against student code
     for root, _, tests in os.walk("instructor/tests"):
         for test in tests:
             test = os.path.join(root, test)
-            jobs.append((STUDENT_CODE_PATH, test))
+            jobs.append((student_code_path, test))
 
     # Run wheats against student tests
     for root, _, wheats in os.walk("instructor/impls/wheat"):
         for wheat in wheats:
             wheat_path = os.path.join(root, wheat)
             fix_instructor_code_imports(wheat_path)
-            jobs.append((wheat_path, STUDENT_TEST_PATH))
+            jobs.append((wheat_path, student_test_path))
 
     # Run chaffs against student tests
     for root, _, chaffs in os.walk("instructor/impls/chaff"):
         for chaff in chaffs:
             chaff_path = os.path.join(root, chaff)
             fix_instructor_code_imports(chaff_path)
-            jobs.append((chaff_path, STUDENT_TEST_PATH))
+            jobs.append((chaff_path, student_test_path))
 
     # Run all jobs
     with Pool() as pool:
