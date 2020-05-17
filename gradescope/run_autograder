@@ -1,0 +1,180 @@
+#!/usr/bin/env python3
+
+import os
+import shutil
+import subprocess
+import tempfile
+from multiprocessing import Pool
+from prehook_lib import ImportReplacer
+
+NODE_PATH = "nodejs"
+PYRET_PATH = "/autograder/source/cs19-autograding/pyret-lang"
+NODE_MODULES_PATH = f"{PYRET_PATH}/node_modules"
+RUNNER_PATH = "/autograder/source/cs19-autograding/runner.js"
+JQ = "jq"
+STUDENT_COMMON_PATH = "/autograder/submission/common.arr"
+STUDENT_CODE_PATH = "/autograder/submission/code.arr"
+STUDENT_TEST_PATH = "/autograder/submission/tests.arr"
+
+
+def fix_code_imports(path):
+    print("Fixing imports for code file '{}'".format(path))
+    replacer = ImportReplacer(path)
+    replacer.replace_common_import(os.path.dirname(path))
+    replacer.finalize()
+
+
+def fix_instructor_code_imports(path):
+    print("Fixing imports for instructor impl '{}'".format(path))
+    replacer = ImportReplacer(path)
+    replacer.finalize()
+
+
+def fix_common_imports(path):
+    print("Fixing imports for common file '{}'".format(path))
+    replacer = ImportReplacer(path)
+    replacer.finalize()
+
+
+def fix_test_imports(test_path, impl_path):
+    print("Fixing imports for test file '{}'".format(test_path))
+    replacer = ImportReplacer(test_path)
+    replacer.replace_code_import(os.path.dirname(impl_path),
+                                 os.path.basename(impl_path))
+    replacer.replace_common_import(os.path.dirname(test_path))
+    replacer.finalize()
+
+
+def run(impl_path, test_path):
+    """ Run a single job"""
+
+    cache_dir = tempfile.mkdtemp(dir="/tmp")
+
+    # Make a directory for the job
+    job_name = f"{impl_path};{test_path}"
+    job_path = f"/autograder/results/{job_name}"
+    os.mkdir(job_path)
+
+    # Copy tests into the job directory
+    test_path = f"{job_path}/tests.arr"
+    shutil.copy(test_path, test_path)
+
+    # Fix test imports for this job
+    fix_test_imports(test_path, impl_path)
+
+    error_output = f"{job_path}/error.txt"
+    with open(error_output, "a") as error:
+        # Compile test file
+        os.chdir(PYRET_PATH)
+        compiled_tests_path = f"{os.path.relpath(job_path)}/tests.js"
+        args = [
+            NODE_PATH,
+            "build/phaseA/pyret.jarr",
+            "-no-display-progress",
+            f"--build-runnable \"{os.path.relpath(test_path)}\"",
+            f"--outfile \"{compiled_tests_path}\"",
+            f"--standalone-file \"{RUNNER_PATH}\"",
+            "--builtin-js-dir \"src/js/trove/\"",
+            "--builtin-arr-dir \"src/arr/trove\"",
+            f"--compiled-dir \"{cache_dir}\""
+            "--require-config \"src/scripts/standalone-configA.json\"",
+        ]
+        env = {"NODE_PATH": NODE_MODULES_PATH}
+        subprocess.run(args, check=True, stderr=error, env=env)
+
+        def report_error(error):
+            args = [
+                JQ,
+                "--null-input",
+                f"--arg IMPL \"{impl_path}\"",
+                f"--arg TEST \"{test_path}\"",
+                f"--arg ERROR {error}",
+                '{ impl: $IMPL, tests: $TEST, result : {Err : $ERROR} }',
+            ]
+            with open(error_output, "a") as error:
+                subprocess.run(args,
+                               check=True,
+                               stdout=f"{job_path}/results.json",
+                               stderr=error)
+
+        # Check for compile error
+        if not nonempty(compiled_tests_path):
+            print(f"Compilation failed: {impl_path} {test_path}")
+            report_error("Compilation")
+            return
+
+        # Assume a timeout occurs
+        report_error("Timeout")
+
+        # Run tests on impl
+        output_path = f"{job_path}/raw.json"
+        with open(output_path, "w") as output:
+            args = [NODE_PATH, compiled_tests_path]
+            env = {"NODE_PATH": NODE_MODULES_PATH}
+            subprocess.run(args,
+                           check=True,
+                           stdout=output,
+                           stderr=error,
+                           env=env)
+
+    def nonempty(path):
+        return os.path.exists(path) and os.path.getsize(path)
+
+    if nonempty(error_output):
+        with open(error_output, "r") as error:
+            if "memory" in error.read():
+                report_error("OutOfMemory")
+            else:
+                report_error("Runtime")
+
+    if nonempty(output_path):
+        # Write out results
+        args = [
+            JQ, "--compact-output", f"--arg IMPL \"{impl_path}\"",
+            f"--arg TEST \"{test_path}\"",
+            '{ impl: $IMPL, tests: $TEST, result: {Ok: (. |= map(select(.loc | contains("tests.arr"))))} }',
+            output_path
+        ]
+        with open(error_output, "a") as error:
+            subprocess.run(args,
+                           check=True,
+                           stdout=f"{job_path}/results.json",
+                           stderr=error)
+
+    if not nonempty(error_output):
+        os.remove(error_output)
+        os.remove(compiled_tests_path)
+
+
+if __name__ == '__main__':
+    jobs = []
+
+    # Fix import statements in student's common file
+    fix_common_imports(STUDENT_COMMON_PATH)
+
+    # Fix import statements in student's code file
+    fix_code_imports(STUDENT_CODE_PATH)
+
+    # Run tests against student code
+    for root, _, tests in os.walk("instructor/tests"):
+        for test in tests:
+            test = os.path.join(root, test)
+            jobs.append((STUDENT_CODE_PATH, test))
+
+    # Run wheats against student tests
+    for root, _, wheats in os.walk("instructor/impls/wheat"):
+        for wheat in wheats:
+            wheat_path = os.path.join(root, wheat)
+            fix_instructor_code_imports(wheat_path)
+            jobs.append((wheat_path, STUDENT_TEST_PATH))
+
+    # Run chaffs against student tests
+    for root, _, chaffs in os.walk("instructor/impls/chaff"):
+        for chaff in chaffs:
+            chaff_path = os.path.join(root, chaff)
+            fix_instructor_code_imports(chaff_path)
+            jobs.append((chaff_path, STUDENT_TEST_PATH))
+
+    # Run all jobs
+    with Pool() as pool:
+        pool.map(run, jobs)
