@@ -12,29 +12,26 @@ PYRET_PATH = "/autograder/source/cs19-autograding/pyret-lang"
 NODE_MODULES_PATH = f"{PYRET_PATH}/node_modules"
 RUNNER_PATH = "/autograder/source/cs19-autograding/runner.js"
 JQ = "jq"
+RESULTS = "/autograder/results"
 
 
 def fix_code_imports(path):
-    print("Fixing imports for code file '{}'".format(path))
     replacer = ImportReplacer(path)
     replacer.replace_common_import(os.path.dirname(path))
     replacer.finalize()
 
 
 def fix_instructor_code_imports(path):
-    print("Fixing imports for instructor impl '{}'".format(path))
     replacer = ImportReplacer(path)
     replacer.finalize()
 
 
 def fix_common_imports(path):
-    print("Fixing imports for common file '{}'".format(path))
     replacer = ImportReplacer(path)
     replacer.finalize()
 
 
 def fix_test_imports(test_path, impl_path):
-    print("Fixing imports for test file '{}'".format(test_path))
     replacer = ImportReplacer(test_path)
     replacer.replace_code_import(os.path.dirname(impl_path),
                                  os.path.basename(impl_path))
@@ -74,7 +71,7 @@ def run(job):
             f"--standalone-file \"{RUNNER_PATH}\"",
             "--builtin-js-dir \"src/js/trove/\"",
             "--builtin-arr-dir \"src/arr/trove\"",
-            f"--compiled-dir \"{cache_dir}\""
+            f"--compiled-dir \"{cache_dir}\"",
             "--require-config \"src/scripts/standalone-configA.json\"",
         ]
         env = {"NODE_PATH": NODE_MODULES_PATH}
@@ -146,8 +143,9 @@ def run(job):
 
 if __name__ == '__main__':
     os.chdir("/autograder")
-    shutil.rmtree("/autograder/results")
-    os.mkdir("/autograder/results")
+    if os.path.exists(RESULTS):
+        shutil.rmtree(RESULTS)
+    os.mkdir(RESULTS)
 
     student_common_path = ""
     student_code_path = ""
