@@ -42,19 +42,20 @@ def fix_test_imports(test_path, impl_path):
     replacer.finalize()
 
 
-def run(impl_path, test_path):
+def run(job):
     """ Run a single job"""
-
+    impl_path, test_path = job
     cache_dir = tempfile.mkdtemp(dir="/tmp")
 
     # Make a directory for the job
-    job_name = f"{impl_path};{test_path}"
+    job_name = f"{os.path.basename(impl_path)};{os.path.basename(test_path)}"
     job_path = f"/autograder/results/{job_name}"
     os.mkdir(job_path)
 
     # Copy tests into the job directory
-    test_path = f"{job_path}/tests.arr"
-    shutil.copy(test_path, test_path)
+    copied_test_path = f"{job_path}/tests.arr"
+    shutil.copy(test_path, copied_test_path)
+    test_path = copied_test_path
 
     # Fix test imports for this job
     fix_test_imports(test_path, impl_path)
@@ -145,11 +146,13 @@ def run(impl_path, test_path):
 
 if __name__ == '__main__':
     os.chdir("/autograder")
+    shutil.rmtree("/autograder/results")
+    os.mkdir("/autograder/results")
 
     student_common_path = ""
     student_code_path = ""
     student_test_path = ""
-    for root, _, files in os.walk("submission"):
+    for root, _, files in os.walk("/autograder/submission"):
         for f in files:
             if "common" in f:
                 student_common_path = os.path.join(root, f)
@@ -170,20 +173,22 @@ if __name__ == '__main__':
     fix_code_imports(student_code_path)
 
     # Run tests against student code
-    for root, _, tests in os.walk("instructor/tests"):
+    for root, _, tests in os.walk("/autograder/source/instructor/tests"):
         for test in tests:
             test = os.path.join(root, test)
             jobs.append((student_code_path, test))
 
     # Run wheats against student tests
-    for root, _, wheats in os.walk("instructor/impls/wheat"):
+    for root, _, wheats in os.walk(
+            "/autograder/source/instructor/impls/wheat"):
         for wheat in wheats:
             wheat_path = os.path.join(root, wheat)
             fix_instructor_code_imports(wheat_path)
             jobs.append((wheat_path, student_test_path))
 
     # Run chaffs against student tests
-    for root, _, chaffs in os.walk("instructor/impls/chaff"):
+    for root, _, chaffs in os.walk(
+            "/autograder/source/instructor/impls/chaff"):
         for chaff in chaffs:
             chaff_path = os.path.join(root, chaff)
             fix_instructor_code_imports(chaff_path)
