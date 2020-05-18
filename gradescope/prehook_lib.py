@@ -2,33 +2,26 @@ import os
 import re
 
 
-class ImportReplacer:
-    def __init__(self, path, assignment_dir=os.curdir):
-        self.dir = os.path.dirname(path)
-        self.path = path
-        self.assignment_dir = assignment_dir
-        with open(path, 'r') as f:
+class ImportFixer:
+    def __init__(self, target_path, stencil_dir):
+        self.target_dir = os.path.dirname(target_path)
+        self.target_path = target_path
+        self.stencil_dir = stencil_dir
+        self.rel_stencil_dir = os.path.relpath(self.stencil_dir,
+                                               start=self.target_dir)
+        with open(target_path, 'r') as f:
             self.content = f.read()
 
-    def replace_code_import(self, code_dir, code_file=None):
-        code_dir = os.path.relpath(code_dir, start=self.dir)
+    def fix_import(self, name, location, filename=None):
+        rel_loc = os.path.relpath(location, start=self.target_dir)
         self.content = re.sub(
-            r'my-gdrive\(["\'](.*-code\.arr)["\']\)',
-            r'file("{}/{}")'.format(code_dir, code_file)
-            if code_file else r'file("{}/\1")'.format(code_dir), self.content)
-
-    def replace_common_import(self, common_dir):
-        self.content = re.sub(
-            r'my-gdrive\(["\'](.*-common\.arr)["\']\)',
-            r'file("{}/\1")'.format(os.path.relpath(common_dir,
-                                                    start=self.dir)),
-            self.content)
+            rf'my-gdrive\(["\'](.*-{name}\.arr)["\']\)',
+            rf'file("{rel_loc}/{filename}")'
+            if filename else rf'file("{rel_loc}/\1")', self.content)
 
     def finalize(self):
-        self.content = re.sub(
-            r'shared-gdrive\(["\'](.*?)["\'].*?\n?.*?\)',
-            r'file("{}/\1")'.format(
-                os.path.relpath(self.assignment_dir,
-                                start=self.dir)), self.content, re.M)
-        with open(self.path, 'w') as f:
+        self.content = re.sub(r'shared-gdrive\(["\'](.*?)["\'].*?\n?.*?\)',
+                              rf'file("{self.rel_stencil_dir}/\1")',
+                              self.content, re.M)
+        with open(self.target_path, 'w') as f:
             f.write(self.content)
