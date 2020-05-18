@@ -4,9 +4,6 @@ apt update
 
 curl -sL https://deb.nodesource.com/setup_8.9 -o nodesource_setup.sh
 bash nodesource_setup.sh
-apt install -y make python3 jq build-essential nodejs npm
+apt install -y make python3 jq build-essential nodejs npm unzip
 
-git clone https://github.com/mxheller/cs19-autograding.git --recurse-submodules
-cd cs19-autograding/powder-monkey/pyret-lang
-npm install
-make
+unzip "source/pyret-lang.zip" -d pyret-lang
