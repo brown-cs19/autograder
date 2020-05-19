@@ -1,4 +1,3 @@
-extern crate csv;
 extern crate serde;
 extern crate serde_json;
 

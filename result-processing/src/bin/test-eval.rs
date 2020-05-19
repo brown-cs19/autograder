@@ -1,6 +1,5 @@
 extern crate cs173_autograder_postprocessing;
 
-extern crate csv;
 extern crate serde;
 extern crate serde_json;
 
