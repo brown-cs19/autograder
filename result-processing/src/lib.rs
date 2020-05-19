@@ -117,7 +117,7 @@ impl Evaluation {
                     .iter()
                     .map(|block| block.tests.iter().filter(|test| test.passed).count())
                     .sum();
-                (passed, blocks.len())
+                (passed, blocks.iter().map(|block| block.tests.len()).sum())
             })
             .map_err(|err| err.clone())
     }
