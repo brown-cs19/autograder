@@ -246,6 +246,6 @@ fn main() {
             serde_json::to_writer(BufWriter::new(out), &gradescope_report).unwrap();
             println!("wrote output to {}", outfile);
         }
-        _ => eprintln!("Usage: <infine> <outfile>"),
+        _ => eprintln!("Usage: <infile> <outfile>"),
     }
 }
