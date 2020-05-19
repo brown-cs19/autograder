@@ -76,7 +76,7 @@ def run(job):
         subprocess.run(args, check=True, stderr=error, env=env)
 
         def report_error(error):
-            with open(f"{job_path}/results.json", "a") as output:
+            with open(f"{job_path}/results.json", "w") as output:
                 error = {
                     "code": code_path,
                     "tests": test_path,
@@ -121,7 +121,7 @@ def run(job):
             '{ code: $code, tests: $test, result: {Ok: (. |= map(select(.loc | contains("tests.arr"))))} }',
             output_path
         ]
-        with open(f"{job_path}/results.json", "a") as output:
+        with open(f"{job_path}/results.json", "w") as output:
             with open(error_output, "a") as error:
                 subprocess.run(args, check=True, stdout=output, stderr=error)
 
