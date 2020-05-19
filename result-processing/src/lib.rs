@@ -6,7 +6,6 @@ extern crate serde_json;
 extern crate serde_derive;
 
 use std::collections::{BTreeMap, BTreeSet};
-use std::env;
 use std::fs::File;
 use std::hash::Hash;
 use std::io::prelude::*;
@@ -124,15 +123,9 @@ impl Evaluation {
     }
 }
 
-fn read_evaluation_from_file<P: AsRef<Path>>(path: P) -> Vec<Evaluation> {
+pub fn read_evaluation_from_file<P: AsRef<Path>>(path: P) -> Vec<Evaluation> {
     let mut file = File::open(path).unwrap();
     let mut contents = String::new();
     file.read_to_string(&mut contents).unwrap();
     serde_json::from_str(&contents[..]).unwrap()
-}
-
-pub fn load_evaluation_from_args(mut args: env::Args) -> Vec<Evaluation> {
-    let path = args.nth(1).unwrap();
-    let results: Vec<Evaluation> = read_evaluation_from_file(path);
-    results
 }

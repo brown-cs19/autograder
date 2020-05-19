@@ -7,9 +7,7 @@ extern crate serde_json;
 #[macro_use]
 extern crate serde_derive;
 
-extern crate itertools;
-
-use std::{env, io};
+use std::{env, fs::File, io::BufWriter};
 
 use cs173_autograder_postprocessing::*;
 
@@ -33,36 +31,6 @@ impl Default for TestSuiteEvaluation {
             chaffs_rejected: Map::default(), // true if rejected
             wheat_failure_reasons: None,
         }
-    }
-}
-
-impl TestSuiteEvaluation {
-    fn to_results(&self) -> Vec<String> {
-        let wheat_format: Vec<String> = self
-            .wheats_accepted
-            .iter()
-            .map(|(wheat, &accepted)| {
-                if accepted {
-                    String::from("TRUE")
-                } else {
-                    String::from("FALSE")
-                }
-            })
-            .collect();
-
-        let chaff_format: Vec<String> = self
-            .chaffs_rejected
-            .iter()
-            .map(|(chaff, &rejected)| {
-                if rejected {
-                    String::from("TRUE")
-                } else {
-                    String::from("FALSE")
-                }
-            })
-            .collect();
-
-        [wheat_format, chaff_format].concat()
     }
 }
 
@@ -166,123 +134,119 @@ struct Feature {
     result: Result<usize, Error>,
 }
 
-fn impl_eval_to_iter(features: Vec<Feature>) -> Vec<String> {
-    features
-        .iter()
-        .map(|feature| match feature.result {
-            Ok(passed) => format!("{}", passed),
-            Err(ref err) => format!("ERROR ({:?})", err),
-        })
-        .collect()
+#[derive(Clone, Debug, Serialize)]
+struct GradescopeReport {
+    visibility: String,
+    stdout_visibility: String,
+    tests: Vec<GradescopeTestReport>,
+}
+
+impl GradescopeReport {
+    fn new(tests: Vec<GradescopeTestReport>) -> Self {
+        Self {
+            visibility: "after_published".to_owned(),
+            stdout_visibility: "after_published".to_owned(),
+            tests,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Serialize)]
+struct GradescopeTestReport {
+    name: String,
+    score: usize,
+    max_score: usize,
+    output: String,
+}
+
+impl GradescopeTestReport {
+    fn new(name: String, score: usize, max_score: usize, output: String) -> Self {
+        Self {
+            name,
+            score,
+            max_score,
+            output,
+        }
+    }
 }
 
 fn main() {
-    let results: Vec<Evaluation> = load_evaluation_from_args(env::args());
-    let test_suite_evaluation = results
-        .iter()
-        .filter(|evaluation| evaluation.test_suite.is_student());
-}
+    match env::args().collect::<Vec<_>>().as_slice() {
+        [_, infile, outfile] => {
+            let results: Vec<Evaluation> = read_evaluation_from_file(infile);
 
-fn old_main() {
-    let results: Vec<Evaluation> = load_evaluation_from_args(env::args());
+            let (wheat_chaff_results, test_results): (Vec<&Evaluation>, Vec<&Evaluation>) = results
+                .iter()
+                .partition(|evaluation| evaluation.test_suite.is_student());
 
-    let test_suites_by_student: Map<TestSuite, Map<Implementation, Result<Vec<TestBlock>, Error>>> =
-        results
-            .iter()
-            .filter(|evaluation| evaluation.test_suite.is_student())
-            .fold(Map::default(), |mut grouped, evaluation| {
-                grouped
-                    .entry(evaluation.test_suite.clone())
-                    .or_insert_with(Map::default)
-                    .insert(evaluation.implementation.clone(), evaluation.result.clone());
-                grouped
-            });
+            let test_suite_evaluation = summarize(
+                wheat_chaff_results
+                    .into_iter()
+                    .map(|evaluation| {
+                        (evaluation.implementation.clone(), evaluation.result.clone())
+                    })
+                    .collect(),
+            );
+            let wheat_test_reports =
+                test_suite_evaluation
+                    .wheats_accepted
+                    .into_iter()
+                    .map(|(wheat, passed)| {
+                        let score = if passed { 1 } else { 0 };
+                        GradescopeTestReport::new(
+                            wheat.to_string_lossy().to_string(),
+                            score,
+                            1,
+                            "passed wheat".to_owned(),
+                        )
+                    });
+            let chaff_test_reports =
+                test_suite_evaluation
+                    .chaffs_rejected
+                    .into_iter()
+                    .map(|(chaff, caught)| {
+                        let score = if caught { 1 } else { 0 };
+                        GradescopeTestReport::new(
+                            chaff.to_string_lossy().to_string(),
+                            score,
+                            1,
+                            "caught chaff".to_owned(),
+                        )
+                    });
 
-    let test_suites_by_student: Map<String, TestSuiteEvaluation> = test_suites_by_student
-        .iter()
-        .map(|(student, results)| {
-            (
-                student
-                    .components()
-                    .rev()
-                    .nth(1)
-                    .unwrap()
-                    .as_os_str()
-                    .to_string_lossy()
-                    .into_owned(),
-                summarize(results.clone()),
-            )
-        })
-        .collect();
-
-    let mut implementations_by_student: Map<Implementation, Vec<Evaluation>> = Map::new();
-    for evaluation in results {
-        if evaluation
-            .implementation
-            .to_string_lossy()
-            .contains("instructor")
-        {
-            continue;
-        }
-        implementations_by_student
-            .entry(evaluation.implementation.clone())
-            .or_insert_with(Vec::new)
-            .push(evaluation);
-    }
-
-    let mut processed: Map<String, Vec<Feature>> = Map::new();
-
-    for (implementation, evaluations) in implementations_by_student.iter() {
-        for evaluation in evaluations {
-            processed
-                .entry(
-                    evaluation
-                        .implementation
-                        .components()
-                        .rev()
-                        .nth(1)
-                        .unwrap()
-                        .as_os_str()
-                        .to_string_lossy()
-                        .into_owned(),
-                )
-                .or_insert_with(Vec::new)
-                .push(Feature {
+            let impl_evaluation: Vec<Feature> = test_results
+                .into_iter()
+                .map(|evaluation| Feature {
                     test_suite: evaluation.test_suite.clone(),
                     result: evaluation.summary(),
-                });
-        }
-    }
+                })
+                .collect();
+            let functionality_reports =
+                impl_evaluation
+                    .into_iter()
+                    .map(|Feature { test_suite, result }| {
+                        let (score, output) = match result {
+                            Ok(num_passed) => (num_passed, "passed".to_owned()),
+                            Err(e) => (0, format!("{:?}", e)),
+                        };
+                        GradescopeTestReport::new(
+                            test_suite.to_string_lossy().to_string(),
+                            score,
+                            999,
+                            output,
+                        )
+                    });
 
-    let students = test_suites_by_student
-        .keys()
-        .chain(processed.keys())
-        .unique();
-    let mut wtr = csv::Writer::from_writer(io::stdout());
-
-    use itertools::Itertools;
-
-    let empty_eval = TestSuiteEvaluation::default();
-
-    for student in students {
-        let test_suite_evaluation = test_suites_by_student.get(student).unwrap_or(&empty_eval);
-        let implementation_evaluation = processed.get(student);
-        if let Some(implementation_evaluation) = implementation_evaluation {
-            let res = wtr.write_record(
-                &[
-                    vec![student.to_owned()],
-                    test_suite_evaluation.to_results(),
-                    impl_eval_to_iter(implementation_evaluation.clone()),
-                ]
-                .concat(),
+            let gradescope_report = GradescopeReport::new(
+                wheat_test_reports
+                    .chain(chaff_test_reports)
+                    .chain(functionality_reports)
+                    .collect(),
             );
-            if res.is_err() {
-                println!("Skipping {}: wrong number of entries", student);
-            }
-
-            wtr.flush().unwrap();
-        } else {
-            println!("Skipping {}: couldn't find evaluation", student);
+            let out = File::open(outfile).unwrap();
+            serde_json::to_writer(BufWriter::new(out), &gradescope_report).unwrap();
+            println!("wrote output to {}", outfile);
         }
+        _ => eprintln!("Usage: <infine> <outfile>"),
     }
 }
