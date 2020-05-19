@@ -162,24 +162,27 @@ if __name__ == '__main__':
     fix_imports(student_code_path, student_code_path, SUBMISSION)
 
     # Run tests against student code
-    for root, _, tests in os.walk(f"{INSTRUCTOR}/tests"):
-        for test in tests:
-            test = os.path.join(root, test)
-            jobs.append((student_code_path, test, student_common_dir))
+    for root, _, files in os.walk(f"{INSTRUCTOR}/tests"):
+        for f in files:
+            if f != "README":
+                test = os.path.join(root, f)
+                jobs.append((student_code_path, test, student_common_dir))
 
     # Run wheats against student tests
-    for root, _, wheats in os.walk(f"{INSTRUCTOR}/impls/wheat"):
-        for wheat in wheats:
-            wheat_path = os.path.join(root, wheat)
-            fix_imports(wheat_path, wheat_path, dirname(wheat_path))
-            jobs.append((wheat_path, student_test_path, student_common_dir))
+    for root, _, files in os.walk(f"{INSTRUCTOR}/impls/wheat"):
+        for f in files:
+            if f != "README":
+                wheat = os.path.join(root, f)
+                fix_imports(wheat, wheat, dirname(wheat))
+                jobs.append((wheat, student_test_path, student_common_dir))
 
     # Run chaffs against student tests
-    for root, _, chaffs in os.walk(f"{INSTRUCTOR}/impls/chaff"):
-        for chaff in chaffs:
-            chaff_path = os.path.join(root, chaff)
-            fix_imports(chaff_path, chaff_path, dirname(chaff_path))
-            jobs.append((chaff_path, student_test_path, student_common_dir))
+    for root, _, files in os.walk(f"{INSTRUCTOR}/impls/chaff"):
+        for f in files:
+            if f != "README":
+                chaff = os.path.join(root, f)
+                fix_imports(chaff, chaff, dirname(chaff))
+                jobs.append((chaff, student_test_path, student_common_dir))
 
     # Run all jobs
     with Pool() as pool:
