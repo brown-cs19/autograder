@@ -242,7 +242,7 @@ fn main() {
                     .chain(functionality_reports)
                     .collect(),
             );
-            let out = File::open(outfile).unwrap();
+            let out = File::create(outfile).unwrap();
             serde_json::to_writer(BufWriter::new(out), &gradescope_report).unwrap();
             println!("wrote output to {}", outfile);
         }

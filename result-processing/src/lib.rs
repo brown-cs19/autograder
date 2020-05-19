@@ -101,7 +101,7 @@ pub enum Error {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Evaluation {
-    #[serde(rename = "impl")]
+    #[serde(rename = "code")]
     pub implementation: Implementation,
     #[serde(rename = "tests")]
     pub test_suite: TestSuite,

@@ -4,7 +4,6 @@ import shutil
 import subprocess
 import tempfile
 import json
-from multiprocessing import Pool
 from prehook_lib import ImportFixer
 
 NODE_PATH = "node"
@@ -185,5 +184,5 @@ if __name__ == '__main__':
                 jobs.append((chaff, student_test_path, student_common_dir))
 
     # Run all jobs
-    with Pool() as pool:
-        pool.map(run, jobs)
+    for job in jobs:
+        run(job)
