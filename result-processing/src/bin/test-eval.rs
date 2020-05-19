@@ -130,7 +130,7 @@ fn summarize(results: Map<Implementation, Result<Vec<TestBlock>, Error>>) -> Tes
 #[derive(Clone, Debug, Serialize, Deserialize)]
 struct Feature {
     test_suite: TestSuite,
-    result: Result<usize, Error>,
+    result: Result<(usize, usize), Error>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -224,14 +224,14 @@ fn main() {
                 impl_evaluation
                     .into_iter()
                     .map(|Feature { test_suite, result }| {
-                        let (score, output) = match result {
-                            Ok(num_passed) => (num_passed, "passed".to_owned()),
-                            Err(e) => (0, format!("{:?}", e)),
+                        let (score, total, output) = match result {
+                            Ok((passed, total)) => (passed, total, "passed".to_owned()),
+                            Err(e) => (0, 1, format!("{:?}", e)),
                         };
                         GradescopeTestReport::new(
                             test_suite.to_string_lossy().to_string(),
                             score,
-                            999,
+                            total,
                             output,
                         )
                     });

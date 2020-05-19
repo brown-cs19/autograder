@@ -109,14 +109,15 @@ pub struct Evaluation {
 }
 
 impl Evaluation {
-    pub fn summary(&self) -> Result<usize, Error> {
+    pub fn summary(&self) -> Result<(usize, usize), Error> {
         self.result
             .as_ref()
             .map(|blocks| {
-                blocks
+                let passed = blocks
                     .iter()
                     .map(|block| block.tests.iter().filter(|test| test.passed).count())
-                    .sum()
+                    .sum();
+                (passed, blocks.len())
             })
             .map_err(|err| err.clone())
     }
