@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+cd /autograder/source
+python3 run_autograder.py
+cd /autograder/results
+jq --slurp -c '.' */results.json > raw_results.json
+../source/gradescope_report raw_results.json results.json
