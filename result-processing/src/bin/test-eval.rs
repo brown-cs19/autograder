@@ -156,6 +156,7 @@ struct GradescopeTestReport {
     score: usize,
     max_score: usize,
     output: String,
+    visibility: String,
 }
 
 impl GradescopeTestReport {
@@ -165,6 +166,17 @@ impl GradescopeTestReport {
             score,
             max_score,
             output,
+            visibility: "after_published".to_owned(),
+        }
+    }
+
+    fn new_visible(name: String, score: usize, max_score: usize, output: String) -> Self {
+        Self {
+            name,
+            score,
+            max_score,
+            output,
+            visibility: "visible".to_owned(),
         }
     }
 }
@@ -174,9 +186,10 @@ fn main() {
         [_, infile, outfile] => {
             let results: Vec<Evaluation> = read_evaluation_from_file(infile);
 
-            let (wheat_chaff_results, test_results): (Vec<&Evaluation>, Vec<&Evaluation>) = results
-                .iter()
-                .partition(|evaluation| evaluation.test_suite.is_student());
+            let (wheat_chaff_results, test_results): (Vec<&Evaluation>, Vec<&Evaluation>) =
+                results.iter().partition(|evaluation| {
+                    evaluation.implementation.is_wheat() || evaluation.implementation.is_chaff()
+                });
 
             let test_suite_evaluation = summarize(
                 wheat_chaff_results
@@ -191,10 +204,9 @@ fn main() {
                     .wheats_accepted
                     .into_iter()
                     .map(|(wheat, passed)| {
-                        let score = if passed { 1 } else { 0 };
                         GradescopeTestReport::new(
                             wheat.to_string_lossy().to_string(),
-                            score,
+                            if passed { 1 } else { 0 },
                             1,
                             "passed wheat".to_owned(),
                         )
@@ -204,10 +216,9 @@ fn main() {
                     .chaffs_rejected
                     .into_iter()
                     .map(|(chaff, caught)| {
-                        let score = if caught { 1 } else { 0 };
                         GradescopeTestReport::new(
                             chaff.to_string_lossy().to_string(),
-                            score,
+                            if caught { 1 } else { 0 },
                             1,
                             "caught chaff".to_owned(),
                         )
@@ -223,17 +234,19 @@ fn main() {
             let functionality_reports =
                 impl_evaluation
                     .into_iter()
-                    .map(|Feature { test_suite, result }| {
-                        let (score, total, output) = match result {
-                            Ok((passed, total)) => (passed, total, "passed".to_owned()),
-                            Err(e) => (0, 1, format!("{:?}", e)),
-                        };
-                        GradescopeTestReport::new(
+                    .map(|Feature { test_suite, result }| match result {
+                        Ok((passed, total)) => GradescopeTestReport::new(
                             test_suite.to_string_lossy().to_string(),
-                            score,
+                            passed,
                             total,
-                            output,
-                        )
+                            "Passed".to_owned(),
+                        ),
+                        Err(e) => GradescopeTestReport::new_visible(
+                            test_suite.to_string_lossy().to_string(),
+                            0,
+                            1,
+                            format!("Error: {:?}", e),
+                        ),
                     });
 
             let gradescope_report = GradescopeReport::new(

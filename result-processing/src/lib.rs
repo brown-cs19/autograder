@@ -42,12 +42,6 @@ impl std::ops::Deref for TestSuite {
     }
 }
 
-impl TestSuite {
-    pub fn is_student(&self) -> bool {
-        self.to_string_lossy().contains("student")
-    }
-}
-
 #[derive(Clone, Debug, Serialize, Deserialize, Hash, Eq, PartialEq, PartialOrd, Ord)]
 pub struct Test {
     pub loc: String,
