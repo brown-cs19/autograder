@@ -9,13 +9,17 @@ from prehook_lib import ImportFixer
 NODE_PATH = "node"
 JQ = "jq"
 AUTOGRADER = "/autograder"
+SOURCE = f"{AUTOGRADER}/source/autograder"
 PYRET_PATH = f"{AUTOGRADER}/pyret-lang"
 NODE_MODULES_PATH = f"{PYRET_PATH}/node_modules"
-RUNNER_PATH = f"{AUTOGRADER}/source/runner.js"
+RUNNER_PATH = f"{SOURCE}/runner.js"
 RESULTS = f"{AUTOGRADER}/results"
 SUBMISSION = f"{AUTOGRADER}/submission"
-STENCIL = f"{AUTOGRADER}/source/stencil"
-INSTRUCTOR = f"{AUTOGRADER}/source/instructor"
+STENCIL = f"{SOURCE}/stencil"
+INSTRUCTOR = f"{SOURCE}/instructor"
+WHEATS = f"{INSTRUCTOR}/impls/wheat"
+CHAFFS = f"{INSTRUCTOR}/impls/chaff"
+TESTS = f"{INSTRUCTOR}/tests"
 
 
 def fix_imports(path, code_path, common_dir):
@@ -150,7 +154,7 @@ if __name__ == '__main__':
     assert student_common_path and student_code_path and student_test_path
     student_common_dir = dirname(student_common_path)
 
-    os.chdir("source")
+    os.chdir(SOURCE)  # FIXME: is this needed?
 
     jobs = []
 
@@ -161,14 +165,14 @@ if __name__ == '__main__':
     fix_imports(student_code_path, student_code_path, SUBMISSION)
 
     # Run tests against student code
-    for root, _, files in os.walk(f"{INSTRUCTOR}/tests"):
+    for root, _, files in os.walk(TESTS):
         for f in files:
             if f != "README":
                 test = os.path.join(root, f)
                 jobs.append((student_code_path, test, student_common_dir))
 
     # Run wheats against student tests
-    for root, _, files in os.walk(f"{INSTRUCTOR}/impls/wheat"):
+    for root, _, files in os.walk(WHEATS):
         for f in files:
             if f != "README":
                 wheat = os.path.join(root, f)
@@ -176,7 +180,7 @@ if __name__ == '__main__':
                 jobs.append((wheat, student_test_path, student_common_dir))
 
     # Run chaffs against student tests
-    for root, _, files in os.walk(f"{INSTRUCTOR}/impls/chaff"):
+    for root, _, files in os.walk(CHAFFS):
         for f in files:
             if f != "README":
                 chaff = os.path.join(root, f)
