@@ -1,17 +1,16 @@
 #!/usr/bin/env bash
 
-cd /autograder/source
-
-# Download latest results->gradescope report converter
-curl -L -o gradescope_report https://github.com/brown-cs19/result-processing/releases/latest/download/gradescope_report
-chmod +x gradescope_report
-
 # Run the actual autograder
+cd /autograder/source/autograder
 python3 run_autograder.py
 
 # Compile the results
 cd /autograder/results
 jq --slurp -c '.' */results.json > raw_results.json
 
+# Download latest results->gradescope report converter
+curl -L -o gradescope_report https://github.com/brown-cs19/result-processing/releases/latest/download/gradescope_report
+chmod +x gradescope_report
+
 # Convert results to gradescope's format and location
-../source/gradescope_report raw_results.json results.json
+./gradescope_report raw_results.json results.json
