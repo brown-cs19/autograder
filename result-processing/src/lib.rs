@@ -103,15 +103,18 @@ pub struct Evaluation {
 }
 
 impl Evaluation {
-    pub fn summary(&self) -> Result<(usize, usize), Error> {
+    pub fn summary(&self) -> Result<Vec<(String, usize, usize)>, Error> {
         self.result
             .as_ref()
             .map(|blocks| {
-                let passed = blocks
+                blocks
                     .iter()
-                    .map(|block| block.tests.iter().filter(|test| test.passed).count())
-                    .sum();
-                (passed, blocks.iter().map(|block| block.tests.len()).sum())
+                    .map(|block| {
+                        let passed = block.tests.iter().filter(|test| test.passed).count();
+                        let total = block.tests.len();
+                        (block.name.clone(), passed, total)
+                    })
+                    .collect()
             })
             .map_err(|err| err.clone())
     }

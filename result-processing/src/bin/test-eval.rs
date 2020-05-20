@@ -205,10 +205,10 @@ fn main() {
                     .into_iter()
                     .map(|(wheat, passed)| {
                         GradescopeTestReport::new(
-                            wheat.to_string_lossy().to_string(),
+                            wheat.file_name().unwrap().to_string_lossy().to_string(),
                             if passed { 1 } else { 0 },
                             1,
-                            "passed wheat".to_owned(),
+                            "Passed wheat".to_owned(),
                         )
                     });
             let chaff_test_reports =
@@ -217,37 +217,36 @@ fn main() {
                     .into_iter()
                     .map(|(chaff, caught)| {
                         GradescopeTestReport::new(
-                            chaff.to_string_lossy().to_string(),
+                            chaff.file_name().unwrap().to_string_lossy().to_string(),
                             if caught { 1 } else { 0 },
                             1,
-                            "caught chaff".to_owned(),
+                            "Caught chaff".to_owned(),
                         )
                     });
 
-            let impl_evaluation: Vec<Feature> = test_results
-                .into_iter()
-                .map(|evaluation| Feature {
-                    test_suite: evaluation.test_suite.clone(),
-                    result: evaluation.summary(),
-                })
-                .collect();
-            let functionality_reports =
-                impl_evaluation
-                    .into_iter()
-                    .map(|Feature { test_suite, result }| match result {
-                        Ok((passed, total)) => GradescopeTestReport::new(
-                            test_suite.to_string_lossy().to_string(),
-                            passed,
-                            total,
-                            "Passed".to_owned(),
-                        ),
-                        Err(e) => GradescopeTestReport::new_visible(
-                            test_suite.to_string_lossy().to_string(),
-                            0,
-                            1,
-                            format!("Error: {:?}", e),
-                        ),
-                    });
+            let functionality_reports = test_results.into_iter().flat_map(|result| {
+                match (&result.test_suite, result.summary()) {
+                    (_, Ok(block_results)) => block_results
+                        .into_iter()
+                        .map(|(block_name, passed, total)| {
+                            GradescopeTestReport::new(
+                                block_name,
+                                passed,
+                                total,
+                                "Tests passed!".to_owned(),
+                            )
+                        })
+                        .collect::<Vec<_>>()
+                        .into_iter(),
+                    (suite, Err(e)) => vec![GradescopeTestReport::new_visible(
+                        suite.file_name().unwrap().to_string_lossy().to_string(),
+                        0,
+                        1,
+                        format!("Error: {:?}", e),
+                    )]
+                    .into_iter(),
+                }
+            });
 
             let gradescope_report = GradescopeReport::new(
                 wheat_test_reports
