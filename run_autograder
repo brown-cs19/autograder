@@ -9,8 +9,7 @@ cd /autograder/results
 jq --slurp -c '.' */results.json > raw_results.json
 
 # Download latest results->gradescope report converter
-curl -L -o gradescope_report https://github.com/brown-cs19/result-processing/releases/latest/download/gradescope_report
-chmod +x gradescope_report
+git pull
 
 # Convert results to gradescope's format and location
-./gradescope_report raw_results.json results.json
+ts-node gradescope_report.ts raw_results.json results.json
