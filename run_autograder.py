@@ -40,7 +40,7 @@ def nonempty(path):
 def compile_tests(test_path, error_file):
     os.chdir(PYRET_PATH)
     rel_test_path = os.path.relpath(test_path)
-    compiled_tests_path = f"{rel_test_path}/tests.js"
+    compiled_tests_path = f"{dirname(rel_test_path)}/tests.js"
     args = [
         NODE_PATH,
         "build/phaseA/pyret.jarr",
