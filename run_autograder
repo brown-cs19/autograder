@@ -4,12 +4,13 @@
 cd /autograder/source/autograder
 python3 run_autograder.py
 
+# Download latest results->gradescope report converter
+cd "/autograder/result-processing"
+git pull
+
 # Compile the results
 cd /autograder/results
 jq --slurp -c '.' */results.json > raw_results.json
 
-# Download latest results->gradescope report converter
-git pull
-
 # Convert results to gradescope's format and location
-ts-node gradescope_report.ts raw_results.json results.json
+ts-node "/autograder/result-processing/gradescope_report.ts" raw_results.json results.json
