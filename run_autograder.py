@@ -5,7 +5,7 @@ import subprocess
 import json
 from prehook_lib import ImportFixer
 
-NODE_PATH = "node"
+NODE_PATH = "nodejs"
 JQ = "jq"
 AUTOGRADER = "/autograder"
 SOURCE = f"{AUTOGRADER}/source/autograder"
