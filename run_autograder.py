@@ -2,7 +2,6 @@ import os
 from os.path import basename, dirname
 import shutil
 import subprocess
-import tempfile
 import json
 from prehook_lib import ImportFixer
 
@@ -15,11 +14,16 @@ NODE_MODULES_PATH = f"{PYRET_PATH}/node_modules"
 RUNNER_PATH = f"{SOURCE}/runner.js"
 RESULTS = f"{AUTOGRADER}/results"
 SUBMISSION = f"{AUTOGRADER}/submission"
+CACHE_DIR = f"{SOURCE}/cache"
 STENCIL = f"{SOURCE}/stencil"
 INSTRUCTOR = f"{SOURCE}/instructor"
 WHEATS = f"{INSTRUCTOR}/impls/wheat"
 CHAFFS = f"{INSTRUCTOR}/impls/chaff"
 TESTS = f"{INSTRUCTOR}/tests"
+
+
+class CompileError(Exception):
+    pass
 
 
 def fix_imports(path, code_path, common_dir):
@@ -33,12 +37,43 @@ def nonempty(path):
     return os.path.exists(path) and os.path.getsize(path)
 
 
-def run(job):
-    """ Run a single job"""
+def compile_tests(test_path, error_file):
+    os.chdir(PYRET_PATH)
+    rel_test_path = os.path.relpath(test_path)
+    compiled_tests_path = f"{rel_test_path}/tests.js"
+    args = [
+        NODE_PATH,
+        "build/phaseA/pyret.jarr",
+        "-no-display-progress",
+        "--build-runnable",
+        rel_test_path,
+        "--outfile",
+        compiled_tests_path,
+        "--standalone-file",
+        RUNNER_PATH,
+        "--builtin-js-dir",
+        "src/js/trove/",
+        "--builtin-arr-dir",
+        "src/arr/trove",
+        "--compiled-dir",
+        CACHE_DIR,
+        "--require-config",
+        "src/scripts/standalone-configA.json",
+    ]
+    env = {"NODE_PATH": NODE_MODULES_PATH}
+    try:
+        subprocess.run(args, check=True, stderr=error_file, env=env)
+    except Exception as e:
+        raise CompileError(e)
 
-    code_path, test_path, common_dir = job
-    cache_dir = tempfile.mkdtemp(dir="/tmp")
+    # Check for compile error
+    if not nonempty(compiled_tests_path):
+        raise CompileError("Compile error")
 
+    return compiled_tests_path
+
+
+def run(code_path, test_path, common_dir):
     # Make a directory for the job
     job_name = f"{basename(code_path)};{basename(test_path)}"
     job_path = f"{RESULTS}/{job_name}"
@@ -49,49 +84,26 @@ def run(job):
     shutil.copy(test_path, copied_test_path)
     test_path = copied_test_path
 
+    def report_error(error):
+        with open(f"{job_path}/results.json", "w") as output:
+            error = {
+                "code": code_path,
+                "tests": test_path,
+                "result": {
+                    "Err": error
+                }
+            }
+            output.write(json.dumps(error))
+
     # Fix test imports for this job
     fix_imports(test_path, code_path, common_dir)
 
     error_output = f"{job_path}/error.txt"
     with open(error_output, "a") as error:
         # Compile test file
-        os.chdir(PYRET_PATH)
-        compiled_tests_path = f"{os.path.relpath(job_path)}/tests.js"
-        args = [
-            NODE_PATH,
-            "build/phaseA/pyret.jarr",
-            "-no-display-progress",
-            "--build-runnable",
-            os.path.relpath(test_path),
-            "--outfile",
-            compiled_tests_path,
-            "--standalone-file",
-            RUNNER_PATH,
-            "--builtin-js-dir",
-            "src/js/trove/",
-            "--builtin-arr-dir",
-            "src/arr/trove",
-            "--compiled-dir",
-            cache_dir,
-            "--require-config",
-            "src/scripts/standalone-configA.json",
-        ]
-        env = {"NODE_PATH": NODE_MODULES_PATH}
-        subprocess.run(args, check=True, stderr=error, env=env)
-
-        def report_error(error):
-            with open(f"{job_path}/results.json", "w") as output:
-                error = {
-                    "code": code_path,
-                    "tests": test_path,
-                    "result": {
-                        "Err": error
-                    }
-                }
-                output.write(json.dumps(error))
-
-        # Check for compile error
-        if not nonempty(compiled_tests_path):
+        try:
+            compiled_tests_path = compile_tests(test_path, error)
+        except CompileError:
             print(f"Compilation failed: {code_path} {test_path}")
             report_error("Compilation")
             return
@@ -156,8 +168,6 @@ if __name__ == '__main__':
 
     os.chdir(SOURCE)  # FIXME: is this needed?
 
-    jobs = []
-
     # Fix import statements in student's common file
     fix_imports(student_common_path, student_code_path, SUBMISSION)
 
@@ -169,7 +179,7 @@ if __name__ == '__main__':
         for f in files:
             if f != "README":
                 test = os.path.join(root, f)
-                jobs.append((student_code_path, test, student_common_dir))
+                run(student_code_path, test, student_common_dir)
 
     # Run wheats against student tests
     for root, _, files in os.walk(WHEATS):
@@ -177,7 +187,7 @@ if __name__ == '__main__':
             if f != "README":
                 wheat = os.path.join(root, f)
                 fix_imports(wheat, wheat, dirname(wheat))
-                jobs.append((wheat, student_test_path, student_common_dir))
+                run(wheat, student_test_path, student_common_dir)
 
     # Run chaffs against student tests
     for root, _, files in os.walk(CHAFFS):
@@ -185,8 +195,4 @@ if __name__ == '__main__':
             if f != "README":
                 chaff = os.path.join(root, f)
                 fix_imports(chaff, chaff, dirname(chaff))
-                jobs.append((chaff, student_test_path, student_common_dir))
-
-    # Run all jobs
-    for job in jobs:
-        run(job)
+                run(chaff, student_test_path, student_common_dir)
