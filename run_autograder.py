@@ -74,6 +74,10 @@ def compile_tests(test_path, error_file):
 
 
 def run(code_path, test_path, common_dir):
+    # Make sure cache dir exists
+    if not os.path.exists(CACHE_DIR):
+        os.mkdir(CACHE_DIR)
+
     # Make a directory for the job
     job_name = f"{basename(code_path)};{basename(test_path)}"
     job_path = f"{RESULTS}/{job_name}"
