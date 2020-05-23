@@ -6,6 +6,7 @@ python3 run_autograder.py
 
 # Download latest results->gradescope report converter
 cd "/autograder/result-processing"
+git reset HEAD --hard
 git pull
 
 # Compile the results
