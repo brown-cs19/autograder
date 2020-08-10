@@ -5,7 +5,7 @@ function parse_command_line(): string {
         throw("Usage: <meta_data_file>");
     }
 
-    return process.argv[0];
+    return args[0];
 }
 
 function load_file(path: string) {
