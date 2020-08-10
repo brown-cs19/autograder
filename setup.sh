@@ -13,4 +13,5 @@ npm install -g typescript ts-node
 git clone https://github.com/brown-cs19/result-processing.git
 
 # Unpack pyret zip
+echo "Unpacking pyret"
 unzip "source/autograder/pyret-lang.zip" -d pyret-lang
