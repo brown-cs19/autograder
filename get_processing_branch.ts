@@ -23,3 +23,5 @@ function main() {
         console.log("examplar");
     }
 }
+
+main();
