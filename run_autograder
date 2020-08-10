@@ -15,4 +15,4 @@ jq --slurp -c '.' */results.json > raw_results.json
 
 # Convert results to gradescope's format and location
 npm i @types/node
-ts-node "/autograder/result-processing/gradescope_report.ts" raw_results.json results.json autograder/source/assignment/instructor/points.json
+ts-node "/autograder/result-processing/gradescope_report.ts" raw_results.json results.json /autograder/source/assignment/instructor/points.json
