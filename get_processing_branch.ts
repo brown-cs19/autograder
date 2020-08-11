@@ -18,9 +18,9 @@ function main() {
     let meta_data_file: string = parse_command_line();
     let data = load_file(meta_data_file);
     if (Date.now() < Date.parse(data.assignment.due_date)) {
-        console.log("master");
-    } else {
         console.log("examplar");
+    } else {
+        console.log("master");
     }
 }
 
