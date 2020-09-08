@@ -178,6 +178,13 @@ if __name__ == '__main__':
     # Fix import statements in student's code file
     fix_imports(student_code_path, student_code_path, SUBMISSION)
 
+    # Updates imports for stencils
+    for root, _, files in os.walk(STENCIL):
+        for f in files:
+            if f != "README":
+                stencil = os.path.join(root, f)
+                fix_imports(stencil, stencil, dirname(stencil))
+
     # Run tests against student code
     for root, _, files in os.walk(TESTS):
         for f in files:
