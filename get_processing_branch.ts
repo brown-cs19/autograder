@@ -14,13 +14,20 @@ function load_file(path: string) {
     return JSON.parse(contents);
 }
 
-let NUM_LATE_DAYS = 2;
-let TIME_PER_DAY = 24 * 60 * 60 * 1000;
-
 function main() {
     let meta_data_file: string = parse_command_line();
     let data = load_file(meta_data_file);
-    if (Date.now() < (Date.parse(data.assignment.due_date) + (NUM_LATE_DAYS * TIME_PER_DAY))) {
+
+    // Use late due date, if present.
+    let due_date: number;
+    if (data.assignment.late_due_date === null) {
+        due_date = data.assignment.late_due_date;
+    } else {
+        due_date = data.assignment.due_date;
+    }
+
+
+    if (Date.now() < Date.parse(data.assignment.due_date)) {
         console.log("examplar");
     } else {
         console.log("master");
