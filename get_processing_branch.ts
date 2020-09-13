@@ -19,7 +19,7 @@ function main() {
     let data = load_file(meta_data_file);
 
     // Use late due date, if present.
-    let due_date: number;
+    let due_date: string;
     if (data.assignment.late_due_date === null) {
         due_date = data.assignment.due_date;
     } else {
@@ -27,7 +27,7 @@ function main() {
     }
 
 
-    if (Date.now() < Date.parse(data.assignment.due_date)) {
+    if (Date.now() < Date.parse(due_date)) {
         console.log("examplar");
     } else {
         console.log("master");
