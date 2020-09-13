@@ -21,9 +21,9 @@ function main() {
     // Use late due date, if present.
     let due_date: number;
     if (data.assignment.late_due_date === null) {
-        due_date = data.assignment.late_due_date;
-    } else {
         due_date = data.assignment.due_date;
+    } else {
+        due_date = data.assignment.late_due_date;
     }
 
 
