@@ -197,7 +197,7 @@ if __name__ == '__main__':
         for f in files:
             if f != "README":
                 wheat = os.path.join(root, f)
-                fix_imports(wheat, wheat, dirname(wheat))
+                fix_imports(wheat, wheat, student_common_dir)
                 run(wheat, student_test_path, student_common_dir)
 
     # Run chaffs against student tests
@@ -205,5 +205,5 @@ if __name__ == '__main__':
         for f in files:
             if f != "README":
                 chaff = os.path.join(root, f)
-                fix_imports(chaff, chaff, dirname(chaff))
+                fix_imports(chaff, chaff, student_common_dir)
                 run(chaff, student_test_path, student_common_dir)
