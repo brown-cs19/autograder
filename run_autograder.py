@@ -104,9 +104,9 @@ def run(code_path, test_path, common_dir):
 
     error_output = f"{job_path}/error.txt"
     with open(error_output, "a") as error:
-        fixer = ImportFixer(test_path, STENCIL)
-        fixer.fix_import("common", common_dir)
-        fixer.finalize()
+        # fixer = ImportFixer(test_path, STENCIL)
+        # fixer.fix_import("common", common_dir)
+        # fixer.finalize()
 
         # Compile test file
         try:
