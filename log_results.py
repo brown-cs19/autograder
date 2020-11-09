@@ -1,4 +1,5 @@
 import sys
+import time
 
 # For reading autograder output
 import json
@@ -7,6 +8,9 @@ import json
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import pprint
+
+import random
+time.sleep(random.randrange(0, 5) * 100)
 
 (NUM_ROWS, NUM_COLS) = (200, 100)
 
@@ -57,9 +61,8 @@ is_individual_report = lambda report: report["extra_data"]["type"] == "Individua
 reports = list(filter(is_individual_report, results["tests"]))
 
 is_section = lambda section: lambda report: report["extra_data"]["section"] == section
-functionality_reports = list(filter(is_section("Functionality"), reports))
-wheat_reports = list(filter(is_section("Wheat"), reports))
-chaff_reports = list(filter(is_section("Chaff"), reports))
+def get_reports(name):
+    return list(filter(is_section(name), reports))
 
 # Get grade sheets
 spreadsheet = get_spreadsheet()
@@ -68,57 +71,65 @@ def get_worksheet(name):
     try:
         sheet = spreadsheet.worksheet(name)
     except:
-        sheet = spreadsheet.add_worksheet(name, NUM_ROWS, NUM_COLS)
-
-    sheet.update([[
-        "Assignment Submission ID", 
-        "Name", 
-        "SID", 
-        "Email", 
-        "Submission Time"]])
+        try:
+            sheet = spreadsheet.add_worksheet(name, NUM_ROWS, NUM_COLS)
+            sheet.update([[
+                "Assignment Submission ID", 
+                "Name", 
+                "SID", 
+                "Email", 
+                "Submission Time"]])
+        except:
+            sheet = spreadsheet.worksheet(name)
 
     return sheet
 
-functionality_sheet = get_worksheet(assignment_name + "_Functionality_Autograder")
-wheat_sheet = get_worksheet(assignment_name + "_Wheat_Autograder")
-chaff_sheet = get_worksheet(assignment_name + "_Chaff_Autograder")
 
 # Add reports in
-def get_row(sheet, user_email):
-    try:
-        cell = sheet.find(user_email)
-        return cell.row
-    except:
-        email_col = sheet.col_values(4)
-        return len(email_col) + 1
+# updates = []
+for section in ["Functionality", "Wheat", "Chaff"]:
+    updates = []
+    section_reports = get_reports(section)
+    reports_map = {report["name"]: report["score"] > 0 
+                for report in section_reports}
+    sheet_name = f"{assignment_name}_{section}_Autograder"
+    sheet = get_worksheet(sheet_name)
+    headers, emails = sheet.batch_get(['A1:1', 'D1:D'])
+    headers, emails = headers[0], list(zip(*emails))[0][1:]
 
-def get_column(sheet, header):
-    try:
-        cell = sheet.find(header)
-        return cell.col
-    except:
-        first_row = sheet.row_values(1)
-        col = len(first_row) + 1
-        sheet.update_cell(1, col, header)
-        return col
+    new_headers = list(map(lambda report: report["name"], filter(lambda report: report["name"] not in headers, section_reports)))
+    # print(f"Debug {section}")
+    # print(f"Headers: {headers}")
+    # print(f"New headers: {new_headers}")
+    # print(f"Reports: {reports_map}")
+    if new_headers:
+        rang = gspread.utils.rowcol_to_a1(1, len(headers) + 1) + ":1"
+        sheet.update(rang, [new_headers])
+    headers += new_headers
 
-for [user_name, user_id, user_email] in user_info:
-    sheet_and_reports = [
-            [functionality_sheet, functionality_reports],
-            [wheat_sheet, wheat_reports],
-            [chaff_sheet, chaff_reports]
-        ]
-    for [sheet, reports] in sheet_and_reports:
-        submission_row = get_row(sheet, user_email)
-        sheet.update(f'A{submission_row}:E{submission_row}', [[
+    report_data = list(map(lambda header: reports_map.get(header, None), headers[5:]))
+
+    for [user_name, user_id, user_email] in user_info:
+        user_data = [
             submission_id, 
             user_name, 
             user_id, 
             user_email, 
-            submission_time]])
+            submission_time]
 
-        for report in reports:
-            report_col = get_column(sheet, report["name"])
-            sheet.update_cell(submission_row, report_col, report["score"] > 0)
+        all_data = user_data + report_data
+
+        if user_email in emails:
+            submission_row = emails.index(user_email) + 2
+            updates.append({
+                # 'range': gspread.utils.absolute_range_name(sheet_name, f'A{submission_row}:{submission_row}'),
+                'range': f'A{submission_row}:{submission_row}',
+                'values': [all_data]})
+        else:
+            sheet.append_row(all_data)
+
+    sheet.batch_update(updates)
+
+
 
 
