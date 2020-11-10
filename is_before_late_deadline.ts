@@ -28,9 +28,9 @@ function main() {
 
 
     if (Date.now() < Date.parse(due_date)) {
-        console.log("examplar");
+        console.log("true");
     } else {
-        console.log("master");
+        console.log("false");
     }
 }
 
