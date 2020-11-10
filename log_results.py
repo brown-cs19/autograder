@@ -10,7 +10,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 import pprint
 
 import random
-# time.sleep(random.randrange(0, 25 * 60))
+time.sleep(random.randrange(0, 25 * 60))
 
 (NUM_ROWS, NUM_COLS) = (200, 100)
 
