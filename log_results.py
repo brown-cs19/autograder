@@ -95,7 +95,8 @@ for section in ["Functionality", "Wheat", "Chaff"]:
     sheet_name = f"{assignment_name}_{section}_Autograder"
     sheet = get_worksheet(sheet_name)
     headers, emails = sheet.batch_get(['A1:1', 'D1:D'])
-    headers, emails = headers[0], list(zip(*emails))[0][1:]
+    headers = headers[0]
+    emails = [email[0] if len(email) > 0 else None for email in emails][1:]
 
     new_headers = list(map(lambda report: report["name"], filter(lambda report: report["name"] not in headers, section_reports)))
     # print(f"Debug {section}")
