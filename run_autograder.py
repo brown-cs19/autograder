@@ -44,6 +44,7 @@ def compile_tests(test_path, error_file):
     args = [
         NODE_PATH,
         "build/phaseA/pyret.jarr",
+        "--max-old-space-size=4096",
         "-no-display-progress",
         "--build-runnable",
         rel_test_path,
