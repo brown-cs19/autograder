@@ -43,8 +43,8 @@ def compile_tests(test_path, error_file):
     compiled_tests_path = f"{dirname(rel_test_path)}/tests.js"
     args = [
         NODE_PATH,
-        "build/phaseA/pyret.jarr",
         "--max-old-space-size=4096",
+        "build/phaseA/pyret.jarr",
         "-no-display-progress",
         "--build-runnable",
         rel_test_path,
