@@ -6,7 +6,7 @@ requirejs(["q", "pyret-base/js/runtime", "pyret-base/js/post-load-hooks", "pyret
   var toLoad = program.toLoad;
   var uris = program.uris;
   var realm = { instantiated: {}, static: {}};
-  
+
   var main = toLoad[toLoad.length - 1];
 
   var runtime = runtimeLib.makeRuntime({
@@ -217,7 +217,7 @@ requirejs(["q", "pyret-base/js/runtime", "pyret-base/js/post-load-hooks", "pyret
 
   return runtime.runThunk(function() {
     runtime.modules = {};
-    return runtime.runStandalone(staticModules, runtime.modules, depMap, toLoad, postLoadHooks);
+    return runtime.runStandalone(staticModules, realm, depMap, toLoad, postLoadHooks);
   }, onComplete);
 });
 
