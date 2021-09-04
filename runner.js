@@ -1,4 +1,4 @@
-/* Modified from pyret-lang/src/js/base/handalone.js */
+
 requirejs(["q", "pyret-base/js/runtime", "pyret-base/js/post-load-hooks", "pyret-base/js/exn-stack-parser", "program"], function(Q, runtimeLib, loadHooksLib, stackLib, program) {
 
   var staticModules = program.staticModules;
@@ -6,6 +6,7 @@ requirejs(["q", "pyret-base/js/runtime", "pyret-base/js/post-load-hooks", "pyret
   var toLoad = program.toLoad;
   var uris = program.uris;
   var realm = { instantiated: {}, static: {}};
+  var util = require('util');
 
   var main = toLoad[toLoad.length - 1];
 
@@ -26,18 +27,22 @@ requirejs(["q", "pyret-base/js/runtime", "pyret-base/js/post-load-hooks", "pyret
 
   var postLoadHooks = loadHooksLib.makeDefaultPostLoadHooks(runtime, {main: main, checkAll: true});
   postLoadHooks[main] = function(answer) {
+    // var profile = runtime.getProfile();
+    // if (profile.length > 0) {
+    // profile.forEach(function(entry) { process.stderr.write(JSON.stringify(entry) + "\n"); });
+    // }
     var checkerLib = runtime.modules["builtin://checker"];
     var checker = runtime.getField(runtime.getField(checkerLib, "provide-plus-types"), "values");
-    //var isCheckBlockResult = runtime.getField(checkerLib, "isCheckBlockResult");
     var getStack = function(err) {
 
-      err.val.pyretStack = stackLib.convertExceptionToPyretStackTrace(err.val, program);
+      err.val.pyretStack = stackLib.convertExceptionToPyretStackTrace(err.val, realm);
 
       var locArray = err.val.pyretStack.map(runtime.makeSrcloc);
       var locList = runtime.ffi.makeList(locArray);
       return locList;
     };
     var getStackP = runtime.makeFunction(getStack, "get-stack");
+    // var toCall = runtime.getField(checker, "render-check-results-stack");
     var checks = runtime.getField(answer, "checks");
 
     // RETURNED FUNCTION MUST BE CALLED IN THE CONTEXT OF THE PYRET STACK
@@ -123,7 +128,7 @@ requirejs(["q", "pyret-base/js/runtime", "pyret-base/js/post-load-hooks", "pyret
       var gf = execRt.getField;
       var exnStack = res.exn.stack;
 
-      res.exn.pyretStack = stackLib.convertExceptionToPyretStackTrace(res.exn, program);
+      res.exn.pyretStack = stackLib.convertExceptionToPyretStackTrace(res.exn, realm);
 
       execRt.runThunk(
         function() {
@@ -138,7 +143,7 @@ requirejs(["q", "pyret-base/js/runtime", "pyret-base/js/post-load-hooks", "pyret
             console.error("While trying to report that Pyret terminated with an error:\n" + JSON.stringify(res)
                           + "\nPyret encountered an error rendering that error:\n" + JSON.stringify(reasonResult)
                           + "\nStack:\n" + JSON.stringify(exnStack)
-                          + "\nPyret stack:\n" + execRt.printPyretStack(res.exn.pyretStack, true));
+                          + "\nPyret stack:\n" + execRt.printPyretStack(res.exn.pyretStack, true) + "\n");
             process.exit(EXIT_ERROR_RENDERING_ERROR);
           } else {
             execRt.runThunk(
@@ -153,26 +158,26 @@ requirejs(["q", "pyret-base/js/runtime", "pyret-base/js/post-load-hooks", "pyret
               },
               function(printResult) {
                 if(execRt.isSuccessResult(printResult)) {
-                  console.error(printResult.result);
-                  console.error("\nPyret stack:\n" + execRt.printPyretStack(res.exn.pyretStack));
+                  console.error(util.format(printResult.result));
+                  console.error("\nPyret stack:\n" + execRt.printPyretStack(res.exn.pyretStack) + "\n");
                   process.exit(EXIT_ERROR);
                 } else {
                   console.error(
                       "While trying to report that Pyret terminated with an error:\n" + JSON.stringify(res)
                       + "\ndisplaying that error produced another error:\n" + JSON.stringify(printResult)
                       + "\nStack:\n" + JSON.stringify(exnStack)
-                      + "\nPyret stack:\n" + execRt.printPyretStack(res.exn.pyretStack, true));
+                      + "\nPyret stack:\n" + execRt.printPyretStack(res.exn.pyretStack, true) + "\n");
                   process.exit(EXIT_ERROR_DISPLAYING_ERROR);
                 }
               }, "errordisplay->to-string");
           }
         }, "error->display");
     } else if (res.exn && res.exn.stack) {
-      console.error("Abstraction breaking: Uncaught JavaScript error:\n", res.exn);
-      console.error("Stack trace:\n", res.exn.stack);
+      console.error("Abstraction breaking: Uncaught JavaScript error:\n" + util.format(res.exn));
+      console.error("Stack trace:\n" + util.format(res.exn.stack) + "\n");
       process.exit(EXIT_ERROR_JS);
     } else {
-      console.error("Unknown error result: ", res.exn);
+      console.error("Unknown error result: " + util.format(res.exn) + "\n");
       process.exit(EXIT_ERROR_UNKNOWN);
     }
   }
@@ -198,7 +203,6 @@ requirejs(["q", "pyret-base/js/runtime", "pyret-base/js/post-load-hooks", "pyret
       process.exit(EXIT_SUCCESS);
     }
     else if (runtime.isFailureResult(result)) {
-
       if (runtime.isPyretException(result.exn) && isExit(runtime, result)) {
         processExit(runtime, result.exn.exn);
       }
@@ -206,18 +210,18 @@ requirejs(["q", "pyret-base/js/runtime", "pyret-base/js/post-load-hooks", "pyret
       try {
         renderErrorMessageAndExit(runtime, result);
       } catch(e) {
-        console.error("EXCEPTION!", e);
+        console.error("EXCEPTION!\n" + util.format(e) + "\n");
+        process.exit(EXIT_ERROR_JS);
       }
     } else {
-      console.error("The run ended in an unknown error: ", result);
+      console.error("The run ended in an unknown error: \n" + util.format(result) + "\n");
       console.error(result.exn.stack);
       process.exit(EXIT_ERROR_UNKNOWN);
     }
   }
 
   return runtime.runThunk(function() {
-    runtime.modules = {};
+    runtime.modules = realm.instantiated;
     return runtime.runStandalone(staticModules, realm, depMap, toLoad, postLoadHooks);
   }, onComplete);
 });
-
