@@ -2,7 +2,7 @@
 
 # Run the actual autograder
 cd /autograder/source/autograder
-python3 run_autograder.py
+python3 run_autograder.py /autograder/source/examplar/config.json
 
 # Download latest results->gradescope report converter
 cd "/autograder/result-processing"

@@ -1,3 +1,4 @@
+import sys
 import os
 from os.path import basename, dirname
 import shutil
@@ -152,6 +153,33 @@ def run(code_path, test_path, common_dir):
 
 
 if __name__ == '__main__':
+    if len(sys.argv) == 1:
+        config_file = None
+    elif len(sys.argv) == 2:
+        config_file = sys.argv[1]
+    else:
+        print("Usage: python3 run_autograder.py [config_file.json]", file=sys.stderr)
+        sys.exit(1)
+
+    if config_file is not None:
+        with open(config_file, "r") as f:
+            data = json.loads(f.read())
+        
+        error = "Config file should take the form {useWheats: Boolean, chaffs: List<String>}"
+        assert isinstance(data, dict), error
+
+        assert "useWheats" in data, error
+        use_wheats = data["useWheats"]
+        assert isinstance(use_wheats, bool), error
+
+        assert "chaffs" in data, error
+        chaffs = data["chaffs"]
+        assert isinstance(chaffs, list), error
+        assert all(map(lambda item: isinstance(item, str), chaffs)), error
+    else:
+        use_wheats = True
+        chaffs = None
+
     os.chdir(AUTOGRADER)
     if os.path.exists(RESULTS):
         shutil.rmtree(RESULTS)
@@ -194,17 +222,18 @@ if __name__ == '__main__':
                 run(student_code_path, test, student_common_dir)
 
     # Run wheats against student tests
-    for root, _, files in os.walk(WHEATS):
-        for f in files:
-            if f != "README":
-                wheat = os.path.join(root, f)
-                fix_imports(wheat, wheat, student_common_dir)
-                run(wheat, student_test_path, student_common_dir)
+    if use_wheats:
+        for root, _, files in os.walk(WHEATS):
+            for f in files:
+                if f != "README":
+                    wheat = os.path.join(root, f)
+                    fix_imports(wheat, wheat, student_common_dir)
+                    run(wheat, student_test_path, student_common_dir)
 
     # Run chaffs against student tests
     for root, _, files in os.walk(CHAFFS):
         for f in files:
-            if f != "README":
+            if f != "README" and (chaffs is None or os.path.basename(f) in chaffs):
                 chaff = os.path.join(root, f)
                 fix_imports(chaff, chaff, student_common_dir)
                 run(chaff, student_test_path, student_common_dir)
