@@ -14,11 +14,15 @@ function load_file(path: string) {
     return JSON.parse(contents);
 }
 
+function normalize_name(name: string): string {
+    return name.toLowerCase().replace(" ", "-");
+}
+
 function main() {
     let meta_data_file: string = parse_command_line();
     let data = load_file(meta_data_file);
 
-    console.log(data.assignment.title)
+    console.log(normalize_name(data.assignment.title))
 }
 
 main();
