@@ -26,7 +26,5 @@ fi
 
 # Convert results to gradescope's format and location
 cd /autograder/result-processing
-
 npm i @types/node
-tsc --target es6 gradescope_report.ts
-node gradescope_report.js /autograder/results/raw_results.json /autograder/results/results.json /autograder/source/instructor/points.json $EXAMPLAR_CONFIG
+ts-node gradescope_report.js /autograder/results/raw_results.json /autograder/results/results.json /autograder/source/instructor/points.json $EXAMPLAR_CONFIG
