@@ -4,14 +4,14 @@
 cd /autograder/source/autograder
 python3 run_autograder.py
 
+# Compile the results
+cd /autograder/results
+jq --slurp -c '.' */results.json > raw_results.json
+
 # Download latest results->gradescope report converter
 cd /autograder/result-processing
 git reset HEAD --hard
 git pull
-
-# Compile the results
-cd /autograder/results
-jq --slurp -c '.' */results.json > raw_results.json
 
 # Find whether due date has past to turn on examplar
 npm i @types/node
