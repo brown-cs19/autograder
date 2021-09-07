@@ -5,7 +5,7 @@ cd /autograder/source/autograder
 python3 run_autograder.py
 
 # Download latest results->gradescope report converter
-cd "/autograder/result-processing"
+cd /autograder/result-processing
 git reset HEAD --hard
 git pull
 
@@ -13,7 +13,20 @@ git pull
 cd /autograder/results
 jq --slurp -c '.' */results.json > raw_results.json
 
-# Convert results to gradescope's format and location
+# Find whether due date has past to turn on examplar
 npm i @types/node
-tsc --target es6 /autograder/result-processing/gradescope_report.ts
-node /autograder/result-processing/gradescope_report.js raw_results.json results.json  /autograder/source/examplar/config.json /autograder/source/instructor/points.json
+BEFORE_LATE_DEADLINE=$(ts-node /autograder/source/autograder/is_before_late_deadline.ts /autograder/submission_metadata.json)
+
+if [[ $BEFORE_LATE_DEADLINE == true ]]
+then
+    EXAMPLAR_CONFIG=/autograder/source/examplar/config.json
+else
+    EXAMPLAR_CONFIG=""
+fi
+
+# Convert results to gradescope's format and location
+cd /autograder/result-processing
+
+npm i @types/node
+tsc --target es6 gradescope_report.ts
+node gradescope_report.js /autograder/results/raw_results.json /autograder/results/results.json /autograder/source/instructor/points.json $EXAMPLAR_CONFIG
