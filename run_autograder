@@ -2,7 +2,7 @@
 
 # Run the actual autograder
 cd /autograder/source/autograder
-python3 run_autograder.py /autograder/source/examplar/config.json
+python3 run_autograder.py
 
 # Download latest results->gradescope report converter
 cd "/autograder/result-processing"
@@ -16,4 +16,4 @@ jq --slurp -c '.' */results.json > raw_results.json
 # Convert results to gradescope's format and location
 npm i @types/node
 tsc --target es6 /autograder/result-processing/gradescope_report.ts
-node /autograder/result-processing/gradescope_report.js raw_results.json results.json /autograder/source/instructor/points.json
+node /autograder/result-processing/gradescope_report.js raw_results.json results.json  /autograder/source/examplar/config.json /autograder/source/instructor/points.json
