@@ -71,6 +71,18 @@ requirejs(["q", "pyret-base/js/runtime", "pyret-base/js/post-load-hooks", "pyret
             .then(function(loc){return {loc: loc, passed: passed};});
         };
       }
+
+      // We handle the `else` case as failure as we don't expect
+      // future variants to be added which are considered "successful".
+      // We need a different function because I don't really know how
+      // `render_result` even extracts the `loc` field...
+      // but it doesn't work for `else`.
+      function render_else(passed) {
+        return function(result) {
+          return format(runtime.getField(result, "loc"))
+            .then(function(loc){return {loc: loc, passed: passed};});
+        };
+      }
       return runtime.ffi.cases(any, "TestResult", testresult, {
          "success"                         : render_result(true),
          "failure-not-equal"               : render_result(false),
@@ -84,6 +96,8 @@ requirejs(["q", "pyret-base/js/runtime", "pyret-base/js/post-load-hooks", "pyret
          "failure-raise-not-satisfied"     : render_result(false),
          "failure-raise-not-dissatisfied"  : render_result(false),
          "error-not-boolean"               : render_result(false),
+         "failure-is-incomparable"         : render_result(false),
+         "else"                            : render_else(false),
       });
     }
 
