@@ -84,6 +84,9 @@ def run(code_path, test_path, common_dir):
     job_name = f"{basename(code_path)};{basename(test_path)}"
     job_path = f"{RESULTS}/{job_name}"
     os.mkdir(job_path)
+    
+    # Prints out currently running job name
+    print(job_name)
 
     # Copy tests into the job directory
     copied_test_path = f"{job_path}/tests.arr"
