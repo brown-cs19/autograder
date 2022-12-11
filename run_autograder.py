@@ -188,24 +188,15 @@ if __name__ == '__main__':
         shutil.rmtree(RESULTS)
     os.mkdir(RESULTS)
 
-    student_common_path = ""
     student_code_path = ""
-    student_test_path = ""
     for root, _, files in os.walk(SUBMISSION):
+        assert len(files) == 1
         for f in files:
-            if "common" in f:
-                student_common_path = os.path.join(root, f)
-            if "code" in f:
-                student_code_path = os.path.join(root, f)
-            if "tests" in f:
-                student_test_path = os.path.join(root, f)
-    assert student_common_path and student_code_path and student_test_path
-    student_common_dir = dirname(student_common_path)
+            student_code_path = os.path.join(root, f)
+    assert student_code_path
+    student_code_dir = dirname(student_code_path)
 
     os.chdir(SOURCE)  # FIXME: is this needed?
-
-    # Fix import statements in student's common file
-    fix_imports(student_common_path, student_code_path, SUBMISSION)
 
     # Fix import statements in student's code file
     fix_imports(student_code_path, student_code_path, SUBMISSION)
@@ -222,7 +213,7 @@ if __name__ == '__main__':
         for f in files:
             if f != "README":
                 test = os.path.join(root, f)
-                run(student_code_path, test, student_common_dir)
+                run(student_code_path, test, student_code_dir)
 
     # Run wheats against student tests
     if use_wheats:
@@ -230,13 +221,13 @@ if __name__ == '__main__':
             for f in files:
                 if f != "README":
                     wheat = os.path.join(root, f)
-                    fix_imports(wheat, wheat, student_common_dir)
-                    run(wheat, student_test_path, student_common_dir)
+                    fix_imports(wheat, wheat, student_code_dir)
+                    run(wheat, student_test_path, student_code_dir)
 
     # Run chaffs against student tests
     for root, _, files in os.walk(CHAFFS):
         for f in files:
             if f != "README" and (chaffs is None or os.path.basename(f) in chaffs):
                 chaff = os.path.join(root, f)
-                fix_imports(chaff, chaff, student_common_dir)
-                run(chaff, student_test_path, student_common_dir)
+                fix_imports(chaff, chaff, student_code_dir)
+                run(chaff, student_test_path, student_code_dir)
