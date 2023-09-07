@@ -23,9 +23,9 @@ class ImportFixer:
         self.content = re.sub(r'shared-gdrive\(["\'](.*?)["\'].*?\n?.*?\)',
                               rf'file("{self.rel_stencil_dir}/\1")',
                               self.content, re.M)
-        self.content = re.sub(r'gdrive-js\(["\'](.*?)["\'].*?\n?.*?\)',
-                                rf'js-file("{self.rel_stencil_dir}/\1")',
-                                self.content, re.M)
+        self.content = re.sub(r'gdrive-js\(["\'](.*?)\.js["\'].*?\n?.*?\)',
+                              rf'file("{self.rel_stencil_dir}/\1.arr")',
+                              self.content, re.M)
         with open(self.target_path, 'w', encoding="utf-8") as f:
             f.write(self.content)
 
