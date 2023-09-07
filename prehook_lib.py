@@ -18,6 +18,9 @@ class ImportFixer:
             rf'my-gdrive\(["\'](.*-{name}\.arr)["\']\)',
             rf'file("{rel_loc}/{filename}")'
             if filename else rf'file("{rel_loc}/\1")', self.content)
+        OLD_DOCDIFF_IMPORT="gdrive-js(\"docdiff_qtm-validation.js\", \"11H5gJQtW9TJaiFkWw51fR4_oIibmLr7X\")"
+        NEW_DOCDIFF_IMPORT="shared-gdrive(\"docdiff_qtm-validation.arr\", \"12O---8ZF_VkukhEDGK63Z7hSvDf_PhEW\")"
+        self.content = self.content.replace(OLD_DOCDIFF_IMPORT, NEW_DOCDIFF_IMPORT)
 
     def finalize(self):
         self.content = re.sub(r'shared-gdrive\(["\'](.*?)["\'].*?\n?.*?\)',
