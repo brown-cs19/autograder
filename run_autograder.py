@@ -4,7 +4,7 @@ from os.path import basename, dirname
 import shutil
 import subprocess
 import json
-from prehook_lib import ImportFixer, HeaderDataFixer
+from prehook_lib import ImportFixer, IgnoreFixer
 
 NODE_PATH = "nodejs"
 JQ = "jq"
@@ -33,9 +33,9 @@ def fix_imports(path, code_path, common_dir):
     fixer.fix_import("common", common_dir)
     fixer.finalize()
 
-def fix_common_header(common_path):
-    fixer = HeaderDataFixer(common_path)
-    fixer.strip_data_blocks()
+def fix_ignore(common_path):
+    fixer = IgnoreFixer(common_path)
+    fixer.strip_ignore()
     fixer.finalize()
 
 
@@ -211,7 +211,7 @@ if __name__ == '__main__':
 
     # Fix import statements in student's common file
     fix_imports(student_common_path, student_code_path, SUBMISSION)
-    fix_common_header(student_common_path)
+    fix_ignore(student_common_path)
 
     # Fix import statements in student's code file
     fix_imports(student_code_path, student_code_path, SUBMISSION)

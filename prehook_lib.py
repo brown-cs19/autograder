@@ -1,30 +1,22 @@
 import os
 import re
 
-class HeaderDataFixer:
+START_AUTOGRADER_IGNORE = "#start-autograder-ignore"
+END_AUTOGRADER_IGNORE = "#end-autograder-ignore"
+
+class IgnoreFixer:
     def __init__(self, target_path):
         self.target_dir = os.path.dirname(target_path)
         self.target_path = target_path
         with open(target_path, 'r', encoding="utf-8") as f:
             self.content = f.read()
 
-    def strip_data_blocks(self):
-        """
-        Remove any `data ... end` blocks that occur before the `# END HEADER` marker.
-        """
-        parts = self.content.split("# END HEADER", 1)
-        if len(parts) < 2:
-            return  # nothing to do if no header marker
-        
-        before_header, after_header = parts
-        before_header = re.sub(r'(?s)#startcnd.*?#endcnd', '', before_header)
-
-        self.content = before_header + "# END HEADER" + after_header
+    def strip_ignore(self):
+        self.content = re.sub(r'(?s){}.*?{}'.format(START_AUTOGRADER_IGNORE, END_AUTOGRADER_IGNORE), '', self.content)
 
     def finalize(self):
         with open(self.target_path, 'w', encoding="utf-8") as f:
             f.write(self.content)
-
 
 class ImportFixer:
     def __init__(self, target_path, stencil_dir):
