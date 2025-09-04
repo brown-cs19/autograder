@@ -1,8 +1,8 @@
 import os
 import re
 
-START_AUTOGRADER_IGNORE = "#start-autograder-ignore"
-END_AUTOGRADER_IGNORE = "#end-autograder-ignore"
+START_AUTOGRADER_IGNORE = "start-autograder-ignore"
+END_AUTOGRADER_IGNORE = "end-autograder-ignore"
 
 class IgnoreFixer:
     def __init__(self, target_path):
