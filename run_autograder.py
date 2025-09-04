@@ -31,6 +31,8 @@ def fix_imports(path, code_path, common_dir):
     fixer = ImportFixer(path, STENCIL)
     fixer.fix_import("code", dirname(code_path), basename(code_path))
     fixer.fix_import("common", common_dir)
+    fixer.fix_cnd()
+
     fixer.finalize()
 
 

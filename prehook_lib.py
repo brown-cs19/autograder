@@ -22,6 +22,16 @@ class ImportFixer:
         NEW_DOCDIFF_IMPORT="shared-gdrive(\"docdiff_qtm-validation.arr\", \"12O---8ZF_VkukhEDGK63Z7hSvDf_PhEW\")"
         self.content = self.content.replace(OLD_DOCDIFF_IMPORT, NEW_DOCDIFF_IMPORT)
 
+    def fix_cnd(self):
+        # Prefix "import dom-render as DR" with "#"
+        self.content = re.sub(
+            r'(import dom-render as DR)', r'#\1', self.content
+        )
+        # Prefix "DR.genlayout" with "#"
+        self.content = re.sub(
+            r'(DR\.genlayout)', r'#\1', self.content
+        )
+
     def finalize(self):
         self.content = re.sub(r'shared-gdrive\(["\'](.*?)["\'].*?\n?.*?\)',
                               rf'file("{self.rel_stencil_dir}/\1")',
