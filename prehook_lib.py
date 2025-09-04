@@ -17,7 +17,7 @@ class HeaderDataFixer:
             return  # nothing to do if no header marker
         
         before_header, after_header = parts
-        before_header = re.sub(r'(?s)data\s+\w+:.*?end', '', before_header)
+        before_header = re.sub(r'(?s)#startcnd\s+\w+:.*?#endcnd', '', before_header)
 
         self.content = before_header + "# END HEADER" + after_header
 
