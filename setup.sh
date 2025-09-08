@@ -12,6 +12,7 @@ curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bas
 source ~/.bashrc
 nvm install 24
 nvm use 24
+echo Node is at $(command -v node)
 ln -sf "$(command -v node)" /usr/bin/nodejs #symlink to node
 
 # Clone result processing repo
