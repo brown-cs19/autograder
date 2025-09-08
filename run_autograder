@@ -1,5 +1,12 @@
 #!/usr/bin/env bash
 
+curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+source ~/.bashrc
+nvm install 24
+nvm use 24
+echo Node is at $(command -v node)
+ln -sf "$(command -v node)" /usr/bin/nodejs #symlink to node
+
 # Run the actual autograder
 cd /autograder/source/autograder
 python3 run_autograder.py
