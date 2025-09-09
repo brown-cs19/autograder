@@ -1,9 +1,23 @@
 
 requirejs(["q", "pyret-base/js/runtime", "pyret-base/js/post-load-hooks", "pyret-base/js/exn-stack-parser", "program"], function(Q, runtimeLib, loadHooksLib, stackLib, program) {
 
+  function ensureUserFilesLast(uris) {
+    var builtinUris = [];
+    var userUris = [];
+    for (var i = 0; i < uris.length; i++) {
+      var uri = uris[i];
+      if (/^builtin/.test(uri)) {
+        builtinUris.push(uri);
+      } else {
+        userUris.push(uri);
+      }
+    }
+    return builtinUris.concat(userUris);
+  }
+
   var staticModules = program.staticModules;
   var depMap = program.depMap;
-  var toLoad = program.toLoad;
+  var toLoad = ensureUserFilesLast(program.toLoad);
   var uris = program.uris;
   var realm = { instantiated: {}, static: {}};
   var util = require('util');
