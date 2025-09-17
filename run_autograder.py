@@ -146,16 +146,16 @@ def run(code_path, test_path, common_dir):
     if nonempty(output_path):
         # Write out results (filtering out extraneous leading output)
         args = [
-            JQ, "--compact-output",
+            JQ, "-c", "-sR",
             "--arg", "code", code_path,
             "--arg", "test", test_path,
-            r'-sR',
-            r' split("\n")'
-            r' | (index(map(select(test("^[\\[{]"))[0])) as $firstJsonLine'
-            r'    | if $firstJsonLine == null then "" else (.[ $firstJsonLine: ] | join("\n")) end )'
-            r' | (fromjson // [])'
-            r' | map(select(.loc | contains("tests.arr")))'
-            r' | { code: $code, tests: $test, result: { Ok: . } }',
+            ' split("\n")'
+            ' | ( map(test("^[\\[{]")) | index(true) ) as $i'
+            ' | ( if $i == null then "" else (.[ $i: ] | join("\n")) end )'
+            ' | (try fromjson catch [])'
+            ' | (if type == "array" then . else [.] end)'
+            ' | map(select(.loc | contains("tests.arr")))'
+            ' | { code: $code, tests: $test, result: { Ok: . } }',
             output_path
         ]
         with open(f"{job_path}/results.json", "w") as output:
