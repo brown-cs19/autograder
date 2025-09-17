@@ -146,10 +146,10 @@ def run(code_path, test_path, common_dir):
     if nonempty(output_path):
         # Write out results
         args = [
-            JQ, "--compact-output", "--arg", "code", code_path, "--arg",
-            "test", test_path,
+            JQ, "-c",
+            "--arg", "code", code_path,
+            "--arg", "test", test_path,
             '{ code: $code, tests: $test, result: {Ok: (. |= map(select(.loc | contains("tests.arr"))))} }',
-            output_path
         ]
         # Read only the last line of the output (ignoring other stdout into raw.json)
         with open(output_path, "rb") as f:
