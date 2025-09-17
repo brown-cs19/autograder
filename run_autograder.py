@@ -144,11 +144,18 @@ def run(code_path, test_path, common_dir):
                 report_error("Runtime")
 
     if nonempty(output_path):
-        # Write out results
+        # Write out results (filtering out extraneous leading output)
         args = [
-            JQ, "--compact-output", "--arg", "code", code_path, "--arg",
-            "test", test_path,
-            '{ code: $code, tests: $test, result: {Ok: (. |= map(select(.loc | contains("tests.arr"))))} }',
+            JQ, "--compact-output",
+            "--arg", "code", code_path,
+            "--arg", "test", test_path,
+            r'-sR',
+            r' split("\n")'
+            r' | (index(map(select(test("^[\\[{]"))[0])) as $firstJsonLine'
+            r'    | if $firstJsonLine == null then "" else (.[ $firstJsonLine: ] | join("\n")) end )'
+            r' | (fromjson // [])'
+            r' | map(select(.loc | contains("tests.arr")))'
+            r' | { code: $code, tests: $test, result: { Ok: . } }',
             output_path
         ]
         with open(f"{job_path}/results.json", "w") as output:
