@@ -144,23 +144,22 @@ def run(code_path, test_path, common_dir):
                 report_error("Runtime")
 
     if nonempty(output_path):
-        # Write out results (filtering out extraneous leading output)
+        # Write out results
         args = [
-            JQ, "-c", "-sR",
-            "--arg", "code", code_path,
-            "--arg", "test", test_path,
-            ' split("\n")'
-            ' | ( map(test("^[\\[{]")) | index(true) ) as $i'
-            ' | ( if $i == null then "" else (.[ $i: ] | join("\n")) end )'
-            ' | (try fromjson catch [])'
-            ' | (if type == "array" then . else [.] end)'
-            ' | map(select(.loc | contains("tests.arr")))'
-            ' | { code: $code, tests: $test, result: { Ok: . } }',
+            JQ, "--compact-output", "--arg", "code", code_path, "--arg",
+            "test", test_path,
+            '{ code: $code, tests: $test, result: {Ok: (. |= map(select(.loc | contains("tests.arr"))))} }',
             output_path
         ]
-        with open(f"{job_path}/results.json", "w") as output:
-            with open(error_output, "a") as error:
-                subprocess.run(args, check=True, stdout=output, stderr=error)
+        # Read only the last line of the output (ignoring other stdout into raw.json)
+        with open(output_path, "rb") as f:
+            last_line = None
+            for line in f:
+                last_line = line
+            payload = last_line or b""
+
+        with open(f"{job_path}/results.json", "w") as output, open(error_output, "a") as error:
+            subprocess.run(args, check=True, input=payload, stdout=output, stderr=error)
 
     if not nonempty(error_output):
         os.remove(error_output)
